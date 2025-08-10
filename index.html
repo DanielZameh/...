@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Truth or Dare — Party Mode</title>
+<!-- Google font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1724; --card:#0b1220; --accent:#ff5c7c; --muted:#9aa4b2;
+    --glass: rgba(255,255,255,0.03);
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box;font-family:Inter, system-ui, Arial}
+  html,body{height:100%;margin:0;background:
+    radial-gradient(1200px 400px at 10% 20%, rgba(255,92,124,0.06),
+    transparent 8%),
+    radial-gradient(900px 300px at 90% 80%, rgba(0,170,255,0.03),
+    transparent 6%),
+    var(--bg); color:#e6eef6}
+  .wrap{max-width:1200px;margin:28px auto;padding:22px}
+  header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+  .logo{width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,#ff7b8a,#7dd3fc);display:flex;align-items:center;justify-content:center;font-weight:800;color:#051024;font-size:20px;box-shadow:0 6px 30px rgba(0,0,0,0.6)}
+  h1{margin:0;font-size:20px}
+  .top-controls{margin-left:auto;display:flex;gap:10px;align-items:center}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:14px;padding:16px;box-shadow:0 8px 40px rgba(2,6,23,0.6);backdrop-filter: blur(6px);}
+  .row{display:flex;gap:12px;align-items:center}
+  input[type="text"],select{background:var(--glass);border:1px solid rgba(255,255,255,0.04);padding:10px;border-radius:10px;color:inherit;min-width:180px}
+  button{background:linear-gradient(90deg,var(--accent),#7dd3fc);border:none;padding:10px 12px;border-radius:10px;color:#051024;font-weight:700;cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,0.5)}
+  .small{padding:8px 10px;border-radius:8px;font-size:13px}
+  main{display:grid;grid-template-columns:360px 1fr;gap:18px;margin-top:18px}
+  .left{display:flex;flex-direction:column;gap:12px}
+  .players{max-height:480px;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+  .player{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent)}
+  .player .avatar{width:44px;height:44;border-radius:10px;background:#0b1220;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .status{font-size:13px;color:var(--muted)}
+  .big-card{padding:22px;border-radius:14px;min-height:360px;display:flex;flex-direction:column;gap:14px}
+  .center{display:flex;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+  .turn-banner{font-weight:800;font-size:22px}
+  .prompt-box{background:#051224;padding:18px;border-radius:12px;min-height:120px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:600}
+  .actions{display:flex;gap:12px}
+  .confirm-strip{display:flex;gap:8px;flex-wrap:wrap}
+  .confirm-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:10px;color:var(--muted)}
+  .footer{display:flex;justify-content:space-between;align-items:center;color:var(--muted);padding-top:6px;font-size:13px}
+  .room-code{background:rgba(255,255,255,0.03);padding:8px;border-radius:8px;font-weight:700;letter-spacing:1.6px}
+  .host-badge{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:8px;font-size:12px}
+  .danger{background:#ff4d6d;color:white}
+  .muted{color:var(--muted)}
+  /* responsive */
+  @media(max-width:920px){
+    main{grid-template-columns:1fr}
+    .left{order:2}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">T&D</div>
+    <div>
+      <h1>Truth or Dare — Party Mode</h1>
+      <div class="muted">Risky or Funny modes • Real-time multiplayer • "He did it" confirmations</div>
+    </div>
+    <div class="top-controls">
+      <select id="langSelect" class="small">
+        <option value="en">English</option>
+        <option value="ar">العربية (UI)</option>
+      </select>
+      <input id="nameInput" placeholder="Your name" />
+      <button id="createBtn">Create Party</button>
+      <input id="joinRoomInput" placeholder="Room code" style="min-width:120px"/>
+      <button id="joinBtn" class="small">Join</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="left">
+      <div class="card big-card">
+        <div class="row">
+          <div>
+            <div class="muted">Room</div>
+            <div id="roomCode" class="room-code">—</div>
+          </div>
+          <div style="margin-left:auto">
+            <div class="muted">Host</div>
+            <div id="hostBadge" class="host-badge">—</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <label style="display:flex;align-items:center;gap:8px">
+            <input type="radio" name="mode" value="risky" checked /> Risky
+          </label>
+          <label style="display:flex;align-items:center;gap:8px">
+            <input type="radio" name="mode" value="funny" /> Funny
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin-left:auto">
+            <input type="checkbox" id="autoRotate" /> Auto next when confirmed
+          </label>
+        </div>
+
+        <div style="margin-top:10px">
+          <div class="muted">Players</div>
+          <div class="players card" id="playersList"></div>
+        </div>
+
+        <div style="margin-top:10px" class="row">
+          <button id="startGameBtn">Start Game</button>
+          <button id="leaveBtn" class="small">Leave</button>
+          <button id="forceSkipBtn" class="small danger">Force Next</button>
+        </div>
+
+        <div class="footer">
+          <div class="muted">Tip: share the room code with pals</div>
+          <div id="countdown" class="muted"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="muted">Game log</div>
+        <div id="log" style="max-height:160px;overflow:auto;padding-top:8px;font-size:13px"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card big-card">
+        <div class="center">
+          <div id="turnBanner" class="turn-banner muted">Not in a party yet — create or join</div>
+          <div id="promptArea" class="prompt-box muted">Waiting...</div>
+
+          <div class="actions" style="margin-top:12px">
+            <button id="truthBtn" class="small">Truth</button>
+            <button id="dareBtn" class="small">Dare</button>
+            <button id="skipBtn" class="small">Pass</button>
+          </div>
+
+          <div style="width:100%;margin-top:14px">
+            <div class="muted">Players who confirmed "He did it"</div>
+            <div id="confirmStrip" class="confirm-strip"></div>
+          </div>
+
+          <div style="margin-top:8px">
+            <button id="confirmDidIt" class="confirm-btn">I saw it — HE DID IT</button>
+            <button id="iDidIt" class="confirm-btn">I did it</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px" class="card">
+        <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+          <div>
+            <strong>Mode:</strong> <span id="currentMode" class="muted">—</span>
+            &nbsp; • &nbsp;
+            <strong>Turn:</strong> <span id="turnIndex" class="muted">—</span>
+          </div>
+          <div>
+            <small class="muted">Host controls visible to host only</small>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+/*
+  IMPORTANT:
+  Replace the firebaseConfig object below with your Firebase project's config.
+  Example:
+  const firebaseConfig = {
+    apiKey: "AIza....",
+    authDomain: "your-app.firebaseapp.com",
+    databaseURL: "https://your-app-default-rtdb.firebaseio.com",
+    projectId: "your-app",
+    storageBucket: "your-app.appspot.com",
+    messagingSenderId: "...",
+    appId: "1:...:web:..."
+  };
+*/
+const firebaseConfig = {
+  // TODO: REPLACE WITH YOUR FIREBASE CONFIG
+  apiKey: "REPLACE_ME",
+  authDomain: "REPLACE_ME",
+  databaseURL: "REPLACE_ME",
+  projectId: "REPLACE_ME",
+  storageBucket: "REPLACE_ME",
+  messagingSenderId: "REPLACE_ME",
+  appId: "REPLACE_ME"
+};
+
+if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "REPLACE_ME") {
+  // warn but keep UI — user must add config to make multiplayer real
+  console.warn("Please replace firebaseConfig in the HTML with your Firebase project's config.");
+}
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+///// Utilities
+function $(id){return document.getElementById(id)}
+function randId(len=6){ const chars='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<len;i++) s+=chars[Math.floor(Math.random()*chars.length)]; return s; }
+function now(){ return Date.now(); }
+
+///// big prompt generator (ensures >=300 truths & >=300 dares per mode)
+function generatePrompts(mode){
+  // templates
+  const truthTemplates = [
+    "What's the wildest crush you've had since you were a teen?",
+    "What's a secret habit you do when nobody's looking?",
+    "What's the most embarrassing thing on your phone right now?",
+    "What's a lie you told recently and why?",
+    "Have you ever ghosted someone? Tell the story.",
+    "What's a tiny crime you committed (no serious stuff) and didn't get caught?",
+    "What's the dumbest thing you've done for a dare?",
+    "What's one thing you'd change about your childhood if you could?",
+    "Have you ever been caught singing or dancing alone? What happened?",
+    "What's a rumor you started or spread unintentionally?"
+  ];
+  const dareTemplates = [
+    "Do your best pirate impression for 30 seconds.",
+    "Sing the chorus of a random pop song like it's a dramatic monologue.",
+    "Dance for 40 seconds without music, full commitment.",
+    "Text the 3rd contact in your phone this exact phrase: 'you won't believe this' and show receipts.",
+    "Pretend you're a cat and act like it for one minute.",
+    "Tell a scandalous secret about yourself or make one up and commit.",
+    "Call a random number from the host's list and sing 'happy birthday' with gusto.",
+    "Speak in a fake accent until your next turn.",
+    "Let someone write a short message (5 words) and post it as your status/avatar.",
+    "Wrap your head in a towel and say 'I am the shampoo king' for 20 seconds."
+  ];
+  // word banks to expand into unique entries
+  const adjectives = ["awkward","sneaky","ridiculous","brutal","tiny","embarrassing","wild","weird","hilarious","awkwardly honest","secretive","sweaty"];
+  const actions = ["kiss a random object","do 10 push-ups while singing","dramatically confess love to an inanimate object","hum the tune of your favorite song with no words","act like you're walking on an invisible tightrope"];
+  const spin = ["in front of the group", "but whisper it like a scandal", "with full dramatic gestures", "while hopping on one foot", "in a slow-motion voiceover"];
+
+  // helper to produce many unique items
+  let truths = [];
+  let dares = [];
+  for (let i=0;i<400;i++){
+    // truth composition
+    let tBase = truthTemplates[i % truthTemplates.length];
+    let tAdd = adjectives[i % adjectives.length];
+    let t = `${tBase} (${tAdd} edition #${i+1})`;
+    truths.push(t);
+
+    // dare composition
+    let dBase = dareTemplates[i % dareTemplates.length];
+    let act = actions[i % actions.length];
+    let suffix = spin[i % spin.length];
+    let d = `${dBase} — or ${act} ${suffix} (round ${i+1})`;
+    dares.push(d);
+  }
+
+  // tweak for 'risky' to be a bit spicier but still safe; for 'funny' make it silly
+  if (mode === 'risky'){
+    truths = truths.map((s,idx)=> s.replace('(awkward edition','(risky edition').replace('#','R#'));
+    dares = dares.map((s,idx)=> s.replace('or','or (risky)'));
+  } else {
+    truths = truths.map((s,idx)=> s.replace('edition','funny edition'));
+    dares = dares.map((s,idx)=> s.replace('or','or (funny)'));
+  }
+
+  // return trimmed to 300+:
+  return {truths: truths.slice(0,350), dares: dares.slice(0,350)};
+}
+
+// PREGENERATE both modes
+const PROMPTS = {
+  risky: generatePrompts('risky'),
+  funny: generatePrompts('funny')
+};
+
+///// App state & DOM refs
+const nameInput = $('nameInput'), createBtn = $('createBtn'), joinBtn = $('joinBtn'), joinRoomInput = $('joinRoomInput');
+const roomCodeEl = $('roomCode'), hostBadge = $('hostBadge'), playersList = $('playersList'), startGameBtn = $('startGameBtn'), leaveBtn = $('leaveBtn');
+const logEl = $('log'), turnBanner = $('turnBanner'), promptArea = $('promptArea'), truthBtn = $('truthBtn'), dareBtn = $('dareBtn'), skipBtn = $('skipBtn'), confirmStrip = $('confirmStrip'), confirmDidIt = $('confirmDidIt'), iDidIt = $('iDidIt');
+const currentModeEl = $('currentMode'), turnIndexEl = $('turnIndex'), forceSkipBtn = $('forceSkipBtn'), langSelect = $('langSelect'), autoRotate = $('autoRotate');
+
+let local = {
+  name: '',
+  id: 'p_'+randId(8),
+  roomId: null,
+  isHost: false,
+  lang: 'en'
+};
+
+let roomRef = null;
+let roomListener = null;
+
+///// i18n (UI strings)
+const UI = {
+  en: {
+    notInParty: "Not in a party yet — create or join",
+    waiting: "Waiting...",
+    heDidIt: "I saw it — HE DID IT",
+    iDidIt: "I did it",
+    startGame: "Start Game",
+    leaving: "Left the party",
+    joined: "joined the party",
+    started: "started the game",
+    yourTurn: (name)=> `${name}'s turn`,
+    picked: (name,choice)=> `${name} picked ${choice}`,
+    confirm_needed: (n)=> `Waiting for ${n} confirmations...`
+  },
+  ar: {
+    notInParty: "مش في حفلة — أنشئ أو انضم",
+    waiting: "جاري الانتظار...",
+    heDidIt: "شافوه — عملها",
+    iDidIt: "أنا عملتها",
+    startGame: "ابدأ اللعبة",
+    leaving: "ترك الحفلة",
+    joined: "انضم للحفلة",
+    started: "بدأ اللعبة",
+    yourTurn: (name)=> `دور ${name}`,
+    picked: (name,choice)=> `${name} اختار ${choice}`,
+    confirm_needed: (n)=> `بانتظار ${n} صوت/أصوات...`
+  }
+};
+
+function t(key, ...args){
+  const lang = local.lang || 'en';
+  const text = UI[lang][key];
+  return (typeof text === 'function') ? text(...args) : text;
+}
+
+///// Firebase helpers
+function ref(path){ return db.ref(path) }
+function writeRoom(roomId, data){ return ref(`rooms/${roomId}`).update(data) }
+function setRoom(roomId, data){ return ref(`rooms/${roomId}`).set(data) }
+function pushLog(roomId, entry){
+  const p = ref(`rooms/${roomId}/log`).push();
+  return p.set({ts:now(), text:entry});
+}
+
+///// Room actions
+createBtn.onclick = async ()=>{
+  const nm = nameInput.value.trim() || 'Player_'+randId(3);
+  local.name = nm; local.isHost = true;
+  const roomId = randId(6);
+  local.roomId = roomId;
+  roomCodeEl.textContent = roomId;
+  hostBadge.textContent = local.name;
+  currentModeEl.textContent = document.querySelector('input[name="mode"]:checked').value;
+  // create room in db
+  const initial = {
+    createdAt: now(),
+    hostId: local.id,
+    hostName: local.name,
+    mode: document.querySelector('input[name="mode"]:checked').value,
+    turnOrder: [],
+    state: 'lobby',
+    currentTurnIdx: 0,
+    confirmations: {},
+    lastActionAt: now()
+  };
+  await setRoom(roomId, initial);
+  // add self as player
+  await ref(`rooms/${roomId}/players/${local.id}`).set({name: local.name, id: local.id, joinedAt: now()});
+  bindRoom(roomId);
+  pushLog(roomId, `${local.name} created the party`);
+};
+
+joinBtn.onclick = async ()=>{
+  const code = (joinRoomInput.value||'').trim().toUpperCase();
+  if(!code){ alert('enter room code'); return; }
+  const nm = nameInput.value.trim() || 'Player_'+randId(3);
+  local.name = nm; local.isHost = false; local.roomId = code;
+  roomCodeEl.textContent = code;
+  hostBadge.textContent = '—';
+  // add to players then bind
+  await ref(`rooms/${code}/players/${local.id}`).set({name: local.name, id: local.id, joinedAt: now()});
+  bindRoom(code);
+  pushLog(code, `${local.name} joined the party`);
+};
+
+leaveBtn.onclick = async ()=>{
+  if(!local.roomId) return;
+  await ref(`rooms/${local.roomId}/players/${local.id}`).remove();
+  pushLog(local.roomId, `${local.name} left`);
+  unbindRoom();
+  resetLocalUI();
+};
+
+forceSkipBtn.onclick = async ()=>{
+  if(!local.roomId) return;
+  const r = await ref(`rooms/${local.roomId}`).once('value');
+  const room = r.val();
+  if(!room) { alert('room not found'); return; }
+  if(room.hostId !== local.id){ if(!confirm('You are not host. Force next anyway?')) return; }
+  // increment currentTurnIdx and reset confirmations
+  const nextIdx = ((room.currentTurnIdx||0) + 1) % Math.max(1,(room.turnOrder||[]).length);
+  await writeRoom(local.roomId, {currentTurnIdx: nextIdx, confirmations: {}, lastActionAt: now()});
+  pushLog(local.roomId, `${local.name} forced next`);
+};
+
+startGameBtn.onclick = async ()=>{
+  if(!local.roomId) return;
+  // fetch players
+  const snap = await ref(`rooms/${local.roomId}/players`).once('value');
+  const players = snap.val();
+  if(!players){ alert('no players'); return; }
+  const ids = Object.keys(players);
+  if(ids.length < 2){ if(!confirm('Less than 2 players. Start anyway?')) return; }
+  // build turnOrder (shuffle)
+  const shuffled = ids.slice().sort(()=>Math.random()-0.5);
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  await writeRoom(local.roomId, {
+    state: 'playing',
+    turnOrder: shuffled,
+    currentTurnIdx: 0,
+    mode,
+    confirmations: {},
+    lastActionAt: now()
+  });
+  pushLog(local.roomId, `${local.name} started the game`);
+};
+
+truthBtn.onclick = ()=> pickPrompt('truth');
+dareBtn.onclick = ()=> pickPrompt('dare');
+skipBtn.onclick = async ()=>{
+  if(!local.roomId) return;
+  const snap = await ref(`rooms/${local.roomId}`).once('value');
+  const room = snap.val();
+  if(!room) return;
+  const nextIdx = ((room.currentTurnIdx||0) + 1) % Math.max(1,(room.turnOrder||[]).length);
+  await writeRoom(local.roomId, {currentTurnIdx: nextIdx, confirmations: {}, lastActionAt: now()});
+  pushLog(local.roomId, `${local.name} passed`);
+};
+
+confirmDidIt.onclick = async ()=>{
+  if(!local.roomId) return;
+  const path = `rooms/${local.roomId}/confirmations/${local.id}`;
+  await ref(path).set({name: local.name, at: now()});
+  pushLog(local.roomId, `${local.name} confirmed someone did it`);
+};
+
+iDidIt.onclick = async ()=>{
+  // current player marking they did it (optional)
+  if(!local.roomId) return;
+  const path = `rooms/${local.roomId}/selfDid/${local.id}`;
+  await ref(path).set({name: local.name, at: now()});
+  pushLog(local.roomId, `${local.name} says: I did it`);
+};
+
+async function pickPrompt(choice){
+  if(!local.roomId) return;
+  const snap = await ref(`rooms/${local.roomId}`).once('value');
+  const room = snap.val();
+  if(!room) return;
+  const mode = room.mode || document.querySelector('input[name="mode"]:checked').value;
+  // choose random prompt from PROMPTS
+  const pool = (choice === 'truth') ? PROMPTS[mode].truths : PROMPTS[mode].dares;
+  const idx = Math.floor(Math.random()*pool.length);
+  const prompt = pool[idx];
+  // write to current prompt slot
+  const payload = {
+    lastPrompt: {
+      by: local.name,
+      choice,
+      text: prompt,
+      at: now()
+    },
+    confirmations: {},
+    lastActionAt: now()
+  };
+  await writeRoom(local.roomId, payload);
+  pushLog(local.roomId, t('picked', local.name, choice.toUpperCase()) + " — " + prompt);
+}
+
+///// Bind & sync room
+function bindRoom(roomId){
+  if(roomListener) roomListener.off();
+  roomRef = ref(`rooms/${roomId}`);
+  roomListener = roomRef.on('value', snap=>{
+    const room = snap.val();
+    if(!room){
+      // room removed
+      unbindRoom();
+      resetLocalUI();
+      alert('Room closed or removed.');
+      return;
+    }
+    // update UI
+    roomCodeEl.textContent = roomId;
+    hostBadge.textContent = room.hostName || '—';
+    currentModeEl.textContent = room.mode || '—';
+    // players
+    ref(`rooms/${roomId}/players`).once('value').then(psnap=>{
+      const players = psnap.val() || {};
+      renderPlayers(players, room);
+    });
+    // game state
+    const state = room.state || 'lobby';
+    if(state === 'lobby'){
+      turnBanner.textContent = t('notInParty');
+      promptArea.textContent = t('waiting');
+    } else {
+      // show whose turn
+      const turnOrder = room.turnOrder || [];
+      const idx = room.currentTurnIdx || 0;
+      const currentPlayerId = turnOrder[idx];
+      const currentPlayer = (room.players && room.players[currentPlayerId]) || null;
+      const curName = (currentPlayer && currentPlayer.name) || (room.players && room.players[currentPlayerId] && room.players[currentPlayerId].name) || '—';
+      turnBanner.textContent = t('yourTurn', curName);
+      turnIndexEl.textContent = `${idx+1}/${Math.max(1,turnOrder.length)}`;
+      // prompt display
+      if(room.lastPrompt && room.lastPrompt.text){
+        promptArea.textContent = `${room.lastPrompt.choice.toUpperCase()} — ${room.lastPrompt.text}`;
+      } else {
+        promptArea.textContent = `${curName} has to pick Truth or Dare`;
+      }
+      // confirmations
+      ref(`rooms/${roomId}/confirmations`).once('value').then(csnap=>{
+        const confs = csnap.val() || {};
+        renderConfirmations(confs, room);
+      });
+    }
+
+    // log
+    ref(`rooms/${roomId}/log`).orderByChild('ts').limitToLast(40).once('value').then(lsnap=>{
+      const logs = lsnap.val() || {};
+      const arr = Object.values(logs).sort((a,b)=>a.ts-b.ts);
+      logEl.innerHTML = arr.map(x=>`<div style="padding:6px 0;border-bottom:1px dashed rgba(255,255,255,0.02)"><small class="muted">${new Date(x.ts).toLocaleTimeString()}</small> — ${x.text}</div>`).join('');
+      logEl.scrollTop = logEl.scrollHeight;
+    });
+
+    // host id to highlight host UI
+    if(room.hostId && room.hostId === local.id){
+      local.isHost = true;
+    } else {
+      // keep whatever
+    }
+  });
+}
+
+function unbindRoom(){
+  if(roomRef && roomListener) roomRef.off('value', roomListener);
+  roomRef = null;
+  roomListener = null;
+  local.roomId = null;
+  local.isHost = false;
+}
+
+function resetLocalUI(){
+  roomCodeEl.textContent = '—';
+  hostBadge.textContent = '—';
+  playersList.innerHTML = '';
+  turnBanner.textContent = t('notInParty');
+  promptArea.textContent = t('waiting');
+  confirmStrip.innerHTML = '';
+  currentModeEl.textContent = '—';
+  turnIndexEl.textContent = '—';
+}
+
+// render players list
+function renderPlayers(players, room){
+  playersList.innerHTML = '';
+  const arr = Object.values(players).sort((a,b)=>a.joinedAt-b.joinedAt);
+  arr.forEach(p=>{
+    const el = document.createElement('div');
+    el.className = 'player';
+    el.innerHTML = `<div class="avatar">${p.name.slice(0,2).toUpperCase()}</div>
+                    <div style="flex:1">
+                      <div style="font-weight:700">${p.name}${(room.hostId===p.id)?' • host':''}</div>
+                      <div class="status">joined ${new Date(p.joinedAt).toLocaleTimeString()}</div>
+                    </div>`;
+    playersList.appendChild(el);
+  });
+}
+
+// render confirmations
+function renderConfirmations(confs, room){
+  confirmStrip.innerHTML = '';
+  const c = confs || {};
+  const keys = Object.keys(c);
+  keys.forEach(k=>{
+    const name = c[k].name || k;
+    const btn = document.createElement('div');
+    btn.className = 'confirm-btn';
+    btn.textContent = name;
+    confirmStrip.appendChild(btn);
+  });
+
+  // decide how many needed (all other players)
+  ref(`rooms/${local.roomId}/players`).once('value').then(psnap=>{
+    const players = psnap.val() || {};
+    const total = Object.keys(players).length;
+    const needed = Math.max(0, total - 1);
+    const got = keys.length;
+    if(room && room.state === 'playing'){
+      if(got >= needed && needed > 0){
+        // move to next turn (only host or auto-rotate)
+        if(autoRotate.checked || room.hostId === local.id){
+          const nextIdx = ((room.currentTurnIdx||0) + 1) % Math.max(1,(room.turnOrder||[]).length);
+          writeRoom(local.roomId, {currentTurnIdx: nextIdx, confirmations: {}, lastActionAt: now()});
+          pushLog(local.roomId, `All confirmed — moving to next`);
+          // clear confirmation node
+          ref(`rooms/${local.roomId}/confirmations`).remove();
+        } else {
+          turnBanner.textContent = t('confirm_needed', needed - got);
+        }
+      } else {
+        turnBanner.textContent = t('confirm_needed', needed - got);
+      }
+    }
+  });
+}
+
+///// language selection
+langSelect.onchange = ()=>{
+  local.lang = langSelect.value;
+  // update UI strings
+  turnBanner.textContent = t('notInParty');
+  promptArea.textContent = t('waiting');
+  confirmDidIt.textContent = t('heDidIt');
+  iDidIt.textContent = t('iDidIt');
+};
+
+///// on load quick set
+(function(){
+  // set random placeholder name if empty
+  nameInput.placeholder = 'Your name (e.g. '+('Daniel').split(' ')[0]+')';
+  confirmDidIt.textContent = t('heDidIt');
+  iDidIt.textContent = t('iDidIt');
+  turnBanner.textContent = t('notInParty');
+  promptArea.textContent = t('waiting');
+})();
+</script>
+</body>
+</html>
